@@ -27,7 +27,7 @@ class Chatbot:
     def save_conversation_csv(self, conversation):
         # Create filename with timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"data/csv/conversation_{timestamp}.csv"
+        filename = f"data/raw/conversations/chat_logs/conversation_chat_logs_{timestamp}.csv"
         
         # Save conversation to CSV file
         with open(filename, 'w', newline='', encoding='utf-8') as f:
