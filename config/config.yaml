@@ -1,0 +1,31 @@
+model:
+  generative:
+    model_name: "facebook/blenderbot_small-90M"
+    max_length: 150  # Increased
+    temperature: 0.85  # Increased
+    top_p: 0.9  # Added
+    num_return_sequences: 1
+    do_sample: true  # Added
+    
+  personality:
+    language: "vi"
+    style: "friendly"
+    formality: "casual"
+
+training:
+  epochs: 5
+  batch_size: 16
+  learning_rate: 2e-5
+  warmup_steps: 500
+  gradient_accumulation_steps: 1
+  
+data:
+  train_file: "data/processed/train.json"
+  val_file: "data/processed/val.json"
+  test_file: "data/processed/test.json"
+  max_length: 512
+  
+paths:
+  model_dir: "models"
+  log_dir: "logs"
+  cache_dir: "cache"
