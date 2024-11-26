@@ -7,3 +7,7 @@ pandas
 tqdm
 numpy
 pyyaml
+langchain
+chromadb
+sentence-transformers
+openai
