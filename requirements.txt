@@ -1,5 +1,6 @@
 torch
 transformers
-langchain
-pandas
-safetensors
+# langchain
+# pandas
+# safetensors
+flask
