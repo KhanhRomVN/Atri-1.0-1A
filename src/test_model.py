@@ -1,77 +1,59 @@
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import EncoderDecoderModel, BertTokenizer
 import torch
-import logging
+import os
 
-# Thiết lập logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-class AtriChatbot:
-    def __init__(self, model_path="model/pre-trained"):
-        """Khởi tạo chatbot với model đã train"""
-        try:
-            logger.info("Đang tải model và tokenizer...")
-            self.tokenizer = AutoTokenizer.from_pretrained(model_path)
-            self.model = AutoModelForCausalLM.from_pretrained(model_path)
-            self.device = "cuda" if torch.cuda.is_available() else "cpu"
-            self.model.to(self.device)
-            logger.info(f"Đã tải model thành công. Sử dụng device: {self.device}")
-        except Exception as e:
-            logger.error(f"Lỗi khi tải model: {str(e)}")
-            raise
-
-    def generate_response(self, user_input, max_length=100):
-        """Tạo phản hồi cho input của người dùng"""
-        try:
-            # Tạo prompt với format phù hợp
-            prompt = f"Human: {user_input}\nAssistant:"
-            
-            # Tokenize input
-            inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True)
-            inputs = inputs.to(self.device)
-
-            # Tạo output
-            outputs = self.model.generate(
-                inputs["input_ids"],
-                max_length=max_length,
-                num_return_sequences=1,
-                temperature=0.7,
-                top_p=0.9,
-                do_sample=True,
-                pad_token_id=self.tokenizer.pad_token_id,
-                eos_token_id=self.tokenizer.eos_token_id,
-            )
-
-            # Decode và xử lý response
-            response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-            
-            # Lấy phần response của Assistant
-            response = response.split("Assistant:")[-1].strip()
-            
-            return response
-
-        except Exception as e:
-            logger.error(f"Lỗi khi tạo response: {str(e)}")
-            return "Xin lỗi, tôi gặp lỗi khi xử lý câu hỏi của bạn."
+def load_model_and_tokenizer():
+    """Load the trained model and tokenizer"""
+    model_path = "models/saved_models/best_model"
+    tokenizer_path = "models/saved_models/best_tokenizer"
+    
+    model = EncoderDecoderModel.from_pretrained(model_path)
+    tokenizer = BertTokenizer.from_pretrained(tokenizer_path)
+    
+    return model, tokenizer
+    
+def generate_response(model, tokenizer, input_text, max_length=128):
+    """Generate response for given input text"""
+    # Encode input text
+    inputs = tokenizer(input_text, return_tensors="pt", max_length=max_length, truncation=True, padding=True)
+    
+    # Generate response
+    outputs = model.generate(
+        inputs.input_ids,
+        decoder_start_token_id=tokenizer.cls_token_id,
+        max_length=max_length,
+        min_length=10,  # Thêm độ dài tối thiểu
+        num_beams=5,
+        no_repeat_ngram_size=3,  # Tăng để tránh lặp từ
+        length_penalty=1.0,  # Phạt câu dài
+        early_stopping=True,
+        bad_words_ids=[[tokenizer.unk_token_id]],  # Tránh sinh unknown tokens
+        do_sample=True,  # Thêm sampling
+        top_k=50,  # Giới hạn top k tokens
+        top_p=0.95  # Nucleus sampling
+    )
+    
+    # Decode response
+    response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    return response
 
 def main():
-    # Khởi tạo chatbot
-    chatbot = AtriChatbot()
+    # Load model and tokenizer
+    print("Loading model and tokenizer...")
+    model, tokenizer = load_model_and_tokenizer()
     
-    print("Atri: Xin chào! Tôi là Atri. Bạn có thể trò chuyện với tôi! (Gõ 'quit' để thoát)")
+    print("\nBắt đầu chat với bot (gõ 'quit' để thoát):")
+    print("-" * 50)
     
     while True:
-        # Nhận input từ người dùng
-        user_input = input("\nBạn: ").strip()
-        
-        # Kiểm tra điều kiện thoát
+        user_input = input("\nBạn: ")
         if user_input.lower() == 'quit':
-            print("\nAtri: Tạm biệt! Hẹn gặp lại bạn!")
+            print("Tạm biệt!")
             break
             
-        # Tạo response
-        response = chatbot.generate_response(user_input)
-        print(f"\nAtri: {response}")
+        response = generate_response(model, tokenizer, user_input)
+        print(f"Bot: {response}")
+        print("-" * 50)
 
 if __name__ == "__main__":
     main()
