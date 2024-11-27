@@ -4,3 +4,4 @@ transformers
 # pandas
 # safetensors
 flask
+gunicorn
